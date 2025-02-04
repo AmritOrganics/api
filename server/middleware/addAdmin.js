@@ -4,46 +4,53 @@ import Admin from "../models/adminModel.js";
 dotenv.config({ path: "../.env" });
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
+// import {pool} from "../config/db.js";
 
-const DB = process.env.DBURI.replace("<PASSWORD>", process.env.DBPASSWORD);
-mongoose
-  .connect(DB, {
-    // useNewUrlParser: true,
-    // useUnifiedTopology: true,
-  })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => {
-    console.error("Error connecting to MongoDB:", err.message);
-    process.exit(1);
-  });
-
+// TODO:  It is added just for default. Need to remove
+import mysql from "mysql2/promise";
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'amritorg_root',
+  password: 'Amrit@1234',
+  database: 'amritorg_db',
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
 const addAdmins = async () => {
   try {
     const admins = [
-      { email: process.env.EMAIL1, password: process.env.PASSWORD1 },
-      { email: process.env.EMAIL2, password: process.env.PASSWORD2 },
-      { email: process.env.EMAIL3, password: process.env.PASSWORD3 },
+      { email: "admin@abc.com", password: "abc@Admin" },
+      
     ];
 
     for (const admin of admins) {
-      const existingAdmin = await Admin.findOne({ email: admin.email });
-      if (existingAdmin) {
+      // Check if admin already exists
+      const [rows] = await pool.query(
+        "SELECT email FROM admins WHERE email = ?",
+        [admin.email]
+      );
+
+      if (rows.length > 0) {
         console.log(`Admin with email ${admin.email} already exists.`);
         continue;
       }
 
+      console.log("admin password : ", admin.password);
+      // Hash the password
       const hashedPassword = await bcrypt.hash(admin.password, 10);
-      await Admin.create({
-        email: admin.email,
-        password: hashedPassword,
-      });
+
+
+      // Insert new admin
+      await pool.query("INSERT INTO admins (email, password) VALUES (?, ?)", [
+        admin.email,
+        hashedPassword,
+      ]);
       console.log(`Admin with email ${admin.email} added successfully.`);
     }
   } catch (err) {
-    console.log("Error adding admins: ", err);
+    console.error("Error adding admins: ", err);
   }
 };
-
-
-
 addAdmins();

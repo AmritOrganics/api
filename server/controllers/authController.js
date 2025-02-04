@@ -16,7 +16,6 @@ export const adminAuth = async (req, res, next) => {
       return next(errorHandler(401, "Invalid token"));
     }
     const admin = await Admin.findById(decoded.id);
-
     if (!admin) {
       return next(errorHandler(401, "Invalid token"));
     }
@@ -40,6 +39,9 @@ export const login = async (req, res, next) => {
     }
 
     // const validAdmin = await Admin.findOne({ email });
+    console.log("Email : ", email);
+    console.log(`"${password}"`);
+   
 
     const admin = await Admin.findByEmail(email);
     console.log("Admin details: ", admin);
@@ -47,13 +49,15 @@ export const login = async (req, res, next) => {
       
       return next(errorHandler(404, "Admin not found"));
     }
+    console.log("Admin password", admin.password);
 
     // Verify password
     const validPassword = await bcrypt.compare(password, admin.password);
-
+    console.log("Valid Password : ", validPassword);
     if (!validPassword) {
       return next(errorHandler(401, "Invalid password"));
     }
+    
 
     // Generate JWT
     const token = jwt.sign({ id: admin.id }, process.env.JWT_SECRET, {

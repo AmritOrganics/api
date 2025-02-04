@@ -1,13 +1,11 @@
 import Blog from "../models/blogModel.js";
+import { pool } from "../config/db.js";
 
 export const getBlog = async (req, res) => {
-  //console.log("Entering to fetch the blogs");
   try {
-    // const blogs = await Blog.find()
-    //   .sort({ createdAt: -1 })
-    //   .select("-_v")
-    //   .lean();
-    const blogs = await Blog.findAll();
+    const [blogs] = await pool.query(
+      "SELECT * FROM blog ORDER BY created_at DESC"
+    );
 
     if (!blogs || blogs.length === 0) {
       return res.status(404).json({ message: "No blogs found" });
@@ -25,14 +23,16 @@ export const getBlog = async (req, res) => {
 export const getBlogById = async (req, res) => {
   try {
     // const blog = await Blog.findById(req.params.id).select("-__v").lean();
-    const blog = await Blog.findById(req.params.id);
+    const [blog] = await pool.query("SELECT * FROM blog WHERE id = ?", [
+      req.params.id,
+    ]);
 
-    if (!blog) {
+    if (!blog || blog.length === 0) {
       return res.status(404).json({
         message: "Blog not found",
       });
     }
-    res.json({ status: "success", blog });
+    res.json({ status: "success", blog: blog[0] });
   } catch (err) {
     res.status(500).json({
       status: "error",
@@ -43,6 +43,7 @@ export const getBlogById = async (req, res) => {
 };
 
 export const createPost = async (req, res) => {
+  console.log("create")
   try {
     const { title, description, content, author, category } = req.body;
 
@@ -50,28 +51,42 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ message: "Please fill in all fields." });
     }
 
-    const imageData = req.file ? {
-      url: req.file.path,
-      publicId: req.file.filename
-    } : null;
+    const imageData = req.file
+      ? {
+          url: req.file.path,
+          publicId: req.file.filename,
+        }
+      : null;
+    const [result] = await pool.query(
+      "INSERT INTO blog (title, description, content, author, category, image_url, image_public_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())",
+      [
+        title,
+        description,
+        content,
+        author || "Anonymous",
+        category || "Uncategorised",
+        imageData?.url || null,
+        imageData?.publicId || null,
+      ]
+    );
+    console.log("res", result);
 
-    const newPost = new Blog({
-      title,
-      description,
-      content,
-      author: author || "Anonymous",
-      category: category || "Uncategorised",
-      image: imageData
-    });
-
-    await newPost.save();
     res.json({
       status: "success",
       message: "Blog created successfully",
-      post: newPost,
-      id: newPost._id,
+      post: {
+        id: result.insertId,
+        title,
+        description,
+        content,
+        author: author || "Anonymous",
+        category: category || "Uncategorised",
+        image: imageData,
+        createdAt: new Date().toISOString(),
+      },
     });
   } catch (err) {
+    console.log("Error catch : ", err);
     res.status(500).json({
       status: "error",
       message: "Error creating blog post",
@@ -79,4 +94,3 @@ export const createPost = async (req, res) => {
     });
   }
 };
-

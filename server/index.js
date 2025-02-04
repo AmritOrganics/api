@@ -24,22 +24,6 @@ async function testConnection() {
 }
 
 testConnection();
-// const DB = process.env.DBURI.replace("<PASSWORD>", process.env.DBPASSWORD);
-
-// mongoose
-//   .connect(DB, {
-//     // useNewUrlParser: true,
-//     // useCreateIndex: true,
-//     // useFindAndModify: false,
-//     // useUnifiedTopology: true,
-//   })
-//   .then((con) => {
-//     console.log("DB connection is successful");
-//   })
-//   .catch((err) => {
-//     console.log(err);
-//     process.exit(1);
-//   });
 
 const port = process.env.PORT || 3000;
 
